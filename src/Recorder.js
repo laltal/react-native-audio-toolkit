@@ -88,6 +88,8 @@ class Recorder extends EventEmitter {
   record(callback = noop) {
     let tasks = [];
 
+    console.log('RECORDING ID =', this._recorderId);
+
     // Make sure recorder is prepared
     if (this._state === MediaStates.IDLE) {
       tasks.push((next) => {

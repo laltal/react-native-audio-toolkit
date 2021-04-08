@@ -146,6 +146,7 @@ public class AudioRecorderModule extends ReactContextBaseJavaModule implements
     
     // metering methods
     private void startMeteringTimer(int monitorInterval) {
+        Log.i(LOG_TAG, "start metering!");
         meteringUpdateTimer = new Timer();
         meteringUpdateTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -162,6 +163,7 @@ public class AudioRecorderModule extends ReactContextBaseJavaModule implements
                         body.putInt("rawValue", amplitude);
                         body.putInt("value", (int) (20 * Math.log10(((double) amplitude) / 32767d)));
                     }
+                    Log.i(LOG_TAG, "dispatch Meter to id: "  + meteringRecorderId);
                     emitEvent(meteringRecorderId, "meter", body);
                 }
             }
@@ -182,13 +184,14 @@ public class AudioRecorderModule extends ReactContextBaseJavaModule implements
         MediaRecorder recorder = this.recorderPool.get(recorderId);
 
         if (recorder != null) {
-            recorder.release();
-            this.recorderPool.remove(recorderId);
-            this.recorderAutoDestroy.remove(recorderId);
             if (recorderId == meteringRecorderId) {
                 meteringRecorderId = null;
                 meteringRecorder = null;
             }
+            recorder.release();
+            this.recorderPool.remove(recorderId);
+            this.recorderAutoDestroy.remove(recorderId);
+
 
             WritableMap data = new WritableNativeMap();
             data.putString("message", "Destroyed recorder");
@@ -284,11 +287,12 @@ public class AudioRecorderModule extends ReactContextBaseJavaModule implements
         if (options.hasKey("meteringInterval")) {
             int meteringInterval = options.getInt("meteringInterval");
             if (meteringRecorderId != null) {
-                Log.i(LOG_TAG, "multiple recorder metering are not currently supporter. Metering will be active on the last recorder.");
+                Log.i(LOG_TAG, "multiple recorder metering are not currently supporter. Metering will be active on the last recorder."  + meteringRecorderId);
             }
             if (meteringInterval <= 0) {
                 Log.w(LOG_TAG, "metering interval must be grater then 0. Ignoring metering");
             } else {
+                Log.w(LOG_TAG, "metering set to recorderID: " + recorderId );
                 meteringRecorder = recorder;
                 meteringRecorderId = recorderId;
                 this.meteringInterval = meteringInterval;
@@ -305,7 +309,11 @@ public class AudioRecorderModule extends ReactContextBaseJavaModule implements
         }
 
         try {
+            Log.i(LOG_TAG, "recorder id: "  + recorderId + " meter Id :" + meteringRecorderId);
+
             if (recorderId == meteringRecorderId) {
+                Log.d(LOG_TAG, "metering ids are the same " + meteringInterval);
+
                 startMeteringTimer(meteringInterval);
             }
             recorder.start();
