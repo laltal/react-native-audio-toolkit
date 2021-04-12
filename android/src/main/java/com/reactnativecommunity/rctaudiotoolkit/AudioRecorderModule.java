@@ -154,8 +154,16 @@ public class AudioRecorderModule extends ReactContextBaseJavaModule implements
                 if (meteringRecorderId != null && meteringRecorder != null) {
                     WritableMap body = Arguments.createMap();
                     body.putDouble("id", meteringFrameId++);
+                    int amplitude = 0;
+                    try {
+                        amplitude = meteringRecorder.getMaxAmplitude();
+                    } catch(Exception e) {
+                        Log.d(LOG_TAG, "getMaxAmplitude is broken");
+                        meteringUpdateTimer.cancel();
+                        meteringUpdateTimer.purge();
+                        return;
+                    }
 
-                    int amplitude = meteringRecorder.getMaxAmplitude();
                     if (amplitude == 0) {
                         body.putInt("value", -160);
                         body.putInt("rawValue", 0);
@@ -184,14 +192,15 @@ public class AudioRecorderModule extends ReactContextBaseJavaModule implements
         MediaRecorder recorder = this.recorderPool.get(recorderId);
 
         if (recorder != null) {
-            if (recorderId == meteringRecorderId) {
-                meteringRecorderId = null;
-                meteringRecorder = null;
-            }
+
             recorder.release();
             this.recorderPool.remove(recorderId);
             this.recorderAutoDestroy.remove(recorderId);
-
+            if (recorderId == meteringRecorderId) {
+                meteringRecorderId = null;
+                meteringRecorder = null;
+                this.stopMeteringTimer();
+            }
 
             WritableMap data = new WritableNativeMap();
             data.putString("message", "Destroyed recorder");
@@ -309,10 +318,10 @@ public class AudioRecorderModule extends ReactContextBaseJavaModule implements
         }
 
         try {
-            Log.i(LOG_TAG, "recorder id: "  + recorderId + " meter Id :" + meteringRecorderId);
+            Log.i(LOG_TAG, "METERRECORD: recorder id: "  + recorderId + "meter Id : " + meteringRecorderId + " are they equal? " + recorderId.equals(meteringRecorderId));
 
-            if (recorderId == meteringRecorderId) {
-                Log.d(LOG_TAG, "metering ids are the same " + meteringInterval);
+            if (recorderId.equals(meteringRecorderId)) {
+                Log.i(LOG_TAG, "METERRECORD: metering ids are the same " + meteringInterval);
 
                 startMeteringTimer(meteringInterval);
             }
@@ -320,6 +329,7 @@ public class AudioRecorderModule extends ReactContextBaseJavaModule implements
 
             callback.invoke();
         } catch (Exception e) {
+            Log.d(LOG_TAG, "METERRECORD: hit exception trying to start recording");
             callback.invoke(errObj("startfail", e.toString()));
         }
     }
@@ -424,3 +434,4 @@ public class AudioRecorderModule extends ReactContextBaseJavaModule implements
         emitEvent(recorderId, "info", data);
     }
 }
+
