@@ -196,7 +196,7 @@ public class AudioRecorderModule extends ReactContextBaseJavaModule implements
             WritableMap data = new WritableNativeMap();
             data.putString("message", "Destroyed recorder");
 
-            emitEvent(recorderId, "info", data);
+            emitEvent(recorderId, "ended", data);
         }
 
         if (callback != null) {
