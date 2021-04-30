@@ -25,6 +25,7 @@
     id _meteringUpdateTimer;
     int _meteringFrameId;
     int _meteringUpdateInterval;
+    int _meteringElapsedTime;
     NSNumber *_meteringRecorderId;
     AVAudioRecorder *_meteringRecorder;
     NSDate *_prevMeteringUpdateTime;
@@ -60,6 +61,7 @@
 - (void)stopMeteringTimer {
     [_meteringUpdateTimer invalidate];
     _meteringFrameId = 0;
+    _meteringElapsedTime = 0;
     _prevMeteringUpdateTime = nil;
     _meteringRecorderId = nil;
     _meteringRecorder = nil;
@@ -86,13 +88,18 @@
     if (_prevMeteringUpdateTime == nil ||
      (([_prevMeteringUpdateTime timeIntervalSinceNow] * -1000.0) >= _meteringUpdateInterval)) {
         _meteringFrameId++;
+        if (_prevMeteringUpdateTime == nil) {
+            _meteringElapsedTime += _meteringUpdateInterval;
+        } else {
+            _meteringElapsedTime += [_prevMeteringUpdateTime timeIntervalSinceNow] * -1000;
+        }
         NSMutableDictionary *body = [[NSMutableDictionary alloc] init];
         [body setObject:[NSNumber numberWithFloat:_meteringFrameId] forKey:@"id"];
-
         [_meteringRecorder updateMeters];
         float _currentLevel = [_meteringRecorder averagePowerForChannel: 0];
         [body setObject:[NSNumber numberWithFloat:_currentLevel] forKey:@"value"];
         [body setObject:[NSNumber numberWithFloat:_currentLevel] forKey:@"rawValue"];
+        [body setObject:[NSNumber numberWithFloat:_meteringElapsedTime] forKey:@"ms"];
         NSString *eventName = [NSString stringWithFormat:@"RCTAudioRecorderEvent:%@", _meteringRecorderId];
         [self.bridge.eventDispatcher sendAppEventWithName:eventName
                                                      body:@{@"event" : @"meter",
