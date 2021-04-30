@@ -20,6 +20,7 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 import java.io.IOException;
 import java.io.File;
 import java.lang.Thread;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -148,6 +149,8 @@ public class AudioRecorderModule extends ReactContextBaseJavaModule implements
     // metering methods
     private void startMeteringTimer(final int monitorInterval) {
         Log.i(LOG_TAG, "start metering!");
+        meterElapsedTime = 0;
+        final Date dateStarted = new Date();
         meteringUpdateTimer = new Timer();
         meteringUpdateTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -172,7 +175,7 @@ public class AudioRecorderModule extends ReactContextBaseJavaModule implements
                         body.putInt("rawValue", amplitude);
                         body.putInt("value", (int) (20 * Math.log10(((double) amplitude) / 32767d)));
                     }
-                    meterElapsedTime += monitorInterval;
+                    meterElapsedTime = (int)((new java.util.Date()).getTime() - dateStarted.getTime());
                     body.putInt("ms", meterElapsedTime);
                     Log.i(LOG_TAG, "dispatch Meter to id: "  + meteringRecorderId);
                     emitEvent(meteringRecorderId, "meter", body);
